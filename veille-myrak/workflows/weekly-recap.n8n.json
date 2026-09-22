@@ -1,0 +1,267 @@
+{
+  "id": "2qqzTC8y2Ou4y05b",
+  "name": "Myrak – Weekly Recap Veille",
+  "active": false,
+  "isArchived": false,
+  "versionId": "b8884f89-37b3-493a-a617-2481466bbf2b",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "nodeCount": 7,
+  "createdAt": "2026-09-22T11:12:59.079Z",
+  "updatedAt": "2026-09-22T11:43:53.456Z",
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "tags": [],
+  "parentFolderId": null,
+  "description": "Récap hebdomadaire depuis Data Table Veille Myrak, synthèse OpenRouter (modèles gratuits), Slack #veille-myrak.",
+  "scopes": [
+    "execution:reveal",
+    "workflow:create",
+    "workflow:delete",
+    "workflow:disableRedaction",
+    "workflow:enableRedaction",
+    "workflow:execute",
+    "workflow:execute-chat",
+    "workflow:export",
+    "workflow:import",
+    "workflow:list",
+    "workflow:move",
+    "workflow:publish",
+    "workflow:read",
+    "workflow:share",
+    "workflow:unpublish",
+    "workflow:unshare",
+    "workflow:update"
+  ],
+  "canExecute": true,
+  "connections": {
+    "Tous les lundis a 9h": {
+      "main": [
+        [
+          {
+            "node": "Lire Veille Myrak",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire Veille Myrak": {
+      "main": [
+        [
+          {
+            "node": "Filtrer 7j et preparer prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrer 7j et preparer prompt": {
+      "main": [
+        [
+          {
+            "node": "Appeler OpenRouter Weekly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Appeler OpenRouter Weekly": {
+      "main": [
+        [
+          {
+            "node": "Formater message Slack Weekly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formater message Slack Weekly": {
+      "main": [
+        [
+          {
+            "node": "Poster Weekly Recap Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "nodes": [
+    {
+      "id": "1725471f-c7e1-40b9-b3db-37372808855b",
+      "name": "Tous les lundis a 9h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "095846cc-d711-4c29-9880-d81d0cb0a57e",
+      "name": "Lire Veille Myrak",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "Xy0t5AMfnnBFbx9e",
+          "cachedResultName": "Veille Myrak"
+        },
+        "returnAll": true
+      }
+    },
+    {
+      "id": "0d07d737-bffb-4bda-a132-e144f40ce0db",
+      "name": "Filtrer 7j et preparer prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const WINDOW_MS = 7 * 24 * 60 * 60 * 1000;\nconst now = Date.now();\n\nfunction parseDate(value) {\n  if (!value) return null;\n  const d = new Date(value);\n  return Number.isNaN(d.getTime()) ? null : d.getTime();\n}\n\nconst weekItems = [];\nfor (const item of items) {\n  const data = item.json;\n  const ms = parseDate(data.date || data.publishedAt || data.createdAt);\n  if (ms !== null && now - ms > WINDOW_MS) continue;\n  weekItems.push({\n    title: data.title || '',\n    url: data.url || '',\n    category: data.category || 'autre',\n    score: Number(data.score) || 0,\n    summary: data.summary || '',\n    source: data.source || '',\n    subreddit: data.subreddit || '',\n  });\n}\n\nweekItems.sort((a, b) => b.score - a.score);\n\nconst d = new Date();\nconst onejan = new Date(d.getFullYear(), 0, 1);\nconst weekNum = Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7);\nconst year = d.getFullYear();\n\nconst listText = weekItems.length\n  ? weekItems.map((it, i) => (\n      (i + 1) + '. [' + it.score + '/10] ' + it.title + ' | ' + it.category + ' | ' + it.source\n      + '\\n   URL: ' + it.url\n      + '\\n   Resume: ' + it.summary\n    )).join('\\n')\n  : 'Aucun item sur les 7 derniers jours.';\n\nconst SYSTEM_PROMPT = `Tu es le stratège de veille de Myrak.\\n\\nContexte Myrak :\\n- Automatisation de process métiers + IA / agents pour freelances et PME.\\n\\nGénère un récap Slack en français, format mrkdwn Slack (liens <url|titre>), STRICTEMENT structuré ainsi :\\n\\n🧭 Veille Myrak – Semaine ${weekNum} / ${year}\\n\\n🔥 Top 5 de la semaine\\n1. <url|Titre> – catégorie – Résumé (2 phrases).\\n...\\n\\n📈 Tendances repérées\\n- Observation 1 (2–3 phrases).\\n- Observation 2 (2–3 phrases).\\n- Observation 3 (2–3 phrases).\\n\\n💡 Idées pour Myrak\\n- Offre / package possible : ...\\n- Sujet de contenu / post : ...\\n- Autre idée actionnable : ...\\n\\nRègles :\\n- Pas d'introduction hors structure. Pas de JSON. Texte Slack prêt à poster.`;\n\nconst userMessage = 'Semaine ' + weekNum + '/' + year + ' — ' + weekItems.length + ' items:\\n\\n' + listText;\n\nreturn [{\n  json: {\n    weekNum,\n    year,\n    itemCount: weekItems.length,\n    items: weekItems,\n    openRouterBody: {\n      model: 'meta-llama/llama-3.3-70b-instruct:free',\n      temperature: 0.4,\n      messages: [\n        { role: 'system', content: SYSTEM_PROMPT },\n        { role: 'user', content: userMessage },\n      ],\n    },\n  },\n}];\n"
+      }
+    },
+    {
+      "id": "7b7e6122-234b-4ae0-810a-c508783248fa",
+      "name": "Formater message Slack Weekly",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const raw = items[0].json;\nlet text = '';\nif (raw.choices && raw.choices[0]?.message?.content) {\n  text = String(raw.choices[0].message.content);\n} else if (typeof raw.text === 'string') {\n  text = raw.text;\n} else if (typeof raw.content === 'string') {\n  text = raw.content;\n} else {\n  text = String(raw.slackMessage || raw.message || '');\n}\ntext = String(text || '').trim();\nif (!text) {\n  text = '_Weekly Recap: aucun contenu genere._';\n}\nreturn [{ json: { slackMessage: text } }];\n"
+      }
+    },
+    {
+      "id": "328a3af9-e2f1-4fb0-9889-df11037d0432",
+      "name": "Poster Weekly Recap Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "authentication": "accessToken",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "veille-myrak"
+        },
+        "messageType": "text",
+        "text": "={{ $json.slackMessage }}",
+        "otherOptions": {
+          "mrkdwn": true,
+          "includeLinkToWorkflow": false,
+          "unfurl_links": false,
+          "unfurl_media": false
+        }
+      },
+      "credentials": {
+        "slackApi": {
+          "id": "glUYO0J1CYNMt2ba",
+          "name": "Slack account"
+        }
+      },
+      "webhookId": "6d86d33d-7c7f-4483-969e-5c2b25d35502"
+    },
+    {
+      "id": "d7d95793-ed65-4947-b3be-b2ee725b7b22",
+      "name": "Sticky Note d5320d2f",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        384,
+        -160
+      ],
+      "parameters": {
+        "content": "## Veille Myrak – Weekly Recap (OpenRouter)\n\n1. Cron lundi 9h (`0 9 * * 1`).\n2. Lit Data Table **Veille Myrak**.\n3. Synthèse via OpenRouter (modèle `:free`).\n4. Credential : **OpenRouter API** (Bearer) + Slack account.",
+        "width": 460,
+        "height": 320
+      }
+    },
+    {
+      "id": "5baa8bc8-435c-4a98-8fc7-a4689ea2660d",
+      "name": "Appeler OpenRouter Weekly",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "contentType": "json",
+        "genericAuthType": "httpBearerAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "HTTP-Referer",
+              "value": "https://myrak.fr"
+            },
+            {
+              "name": "X-Title",
+              "value": "Myrak Veille Weekly"
+            }
+          ]
+        },
+        "jsonBody": "={{ $json.openRouterBody }}",
+        "method": "POST",
+        "options": {
+          "timeout": 120000
+        },
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://openrouter.ai/api/v1/chat/completions"
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "executeOnce": true
+    }
+  ],
+  "nodeGroups": [],
+  "activeVersion": null,
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp"
+  }
+}
