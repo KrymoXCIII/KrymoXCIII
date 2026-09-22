@@ -1,0 +1,391 @@
+{
+  "name": "Myrak – Daily Digest Veille",
+  "id": "BL6qQXmVrZ4J577z",
+  "description": "Digest quotidien de veille techno (Product Hunt, Reddit RSS, blogs) posté sur Slack #veille-myrak avec enrichissement Gemini et log Data Table.",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp"
+  },
+  "versionId": "162bf174-ba2d-4252-90e2-1e38e266f324",
+  "tags": [],
+  "pinData": {},
+  "connections": {
+    "Tous les jours a 8h": {
+      "main": [
+        [
+          {
+            "node": "Configurer les sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configurer les sources": {
+      "main": [
+        [
+          {
+            "node": "Recuperer les flux RSS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recuperer les flux RSS": {
+      "main": [
+        [
+          {
+            "node": "Parser et normaliser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser et normaliser": {
+      "main": [
+        [
+          {
+            "node": "Filtrer dedup et scorer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrer dedup et scorer": {
+      "main": [
+        [
+          {
+            "node": "Enrichir resume score categorie",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrichir resume score categorie": {
+      "main": [
+        [
+          {
+            "node": "Formater message Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Enrichir resume score categorie",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formater message Slack": {
+      "main": [
+        [
+          {
+            "node": "Poster Daily Digest Slack",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Eclater lignes a logger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Eclater lignes a logger": {
+      "main": [
+        [
+          {
+            "node": "Logger Veille Myrak",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "nodes": [
+    {
+      "id": "1e5a4cb4-8ad6-4ec7-a7db-ea7780eb5322",
+      "name": "Tous les jours a 8h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        112
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "9ad8b429-5d72-4e63-af70-4fe3b1b24b17",
+      "name": "Configurer les sources",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        112
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const feeds = [\n  // Product Hunt (feed officiel). Topics AI/Automation/Productivity/Dev Tools/Business\n  // filtrés ensuite par mots-clés (PH ne propose plus de RSS topic stables sans API).\n  { url: 'https://www.producthunt.com/feed', source: 'product_hunt', label: 'Product Hunt' },\n\n  // Blogs / RSS (7 flux)\n  { url: 'https://openai.com/news/rss.xml', source: 'rss', label: 'OpenAI Blog' },\n  { url: 'https://huggingface.co/blog/feed.xml', source: 'rss', label: 'Hugging Face Blog' },\n  { url: 'https://n8n.io/blog/feed', source: 'rss', label: 'n8n Blog' },\n  { url: 'https://zapier.com/blog/feed/', source: 'rss', label: 'Zapier Blog' },\n  { url: 'https://blog.langchain.dev/rss.xml', source: 'rss', label: 'LangChain Blog' },\n  { url: 'https://blog.apify.com/rss/', source: 'rss', label: 'Apify Blog' },\n  { url: 'https://www.lennysnewsletter.com/feed', source: 'rss', label: \"Lenny's Newsletter\" },\n\n  // Reddit via RSS officiel (plus simple a maintenir qu'Apify)\n  { url: 'https://www.reddit.com/r/automation/.rss?limit=25', source: 'reddit', label: 'r/automation', subreddit: 'automation' },\n  { url: 'https://www.reddit.com/r/rpa/.rss?limit=25', source: 'reddit', label: 'r/rpa', subreddit: 'rpa' },\n  { url: 'https://www.reddit.com/r/ai_agents/.rss?limit=25', source: 'reddit', label: 'r/ai_agents', subreddit: 'ai_agents' },\n  { url: 'https://www.reddit.com/r/n8n/.rss?limit=25', source: 'reddit', label: 'r/n8n', subreddit: 'n8n' },\n  { url: 'https://www.reddit.com/r/no_code/.rss?limit=25', source: 'reddit', label: 'r/no_code', subreddit: 'no_code' },\n  { url: 'https://www.reddit.com/r/SaaS/.rss?limit=25', source: 'reddit', label: 'r/SaaS', subreddit: 'SaaS' },\n  { url: 'https://www.reddit.com/r/freelance/.rss?limit=25', source: 'reddit', label: 'r/freelance', subreddit: 'freelance' },\n  { url: 'https://www.reddit.com/r/entrepreneur/.rss?limit=25', source: 'reddit', label: 'r/entrepreneur', subreddit: 'entrepreneur' },\n  // Ajouts justifiés\n  { url: 'https://www.reddit.com/r/ArtificialIntelligence/.rss?limit=25', source: 'reddit', label: 'r/ArtificialIntelligence', subreddit: 'ArtificialIntelligence' },\n  { url: 'https://www.reddit.com/r/LangChain/.rss?limit=25', source: 'reddit', label: 'r/LangChain', subreddit: 'LangChain' },\n  { url: 'https://www.reddit.com/r/sideproject/.rss?limit=25', source: 'reddit', label: 'r/sideproject', subreddit: 'sideproject' },\n];\n\nreturn feeds.map((feed) => ({ json: feed }));"
+      }
+    },
+    {
+      "id": "ebbd2201-c532-4d62-b5ae-66c70ea34172",
+      "name": "Recuperer les flux RSS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        448,
+        112
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.url }}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "MyrakVeilleBot/1.0 (veille technologique; contact: karym.yousfi@gmail.com)"
+            },
+            {
+              "name": "Accept",
+              "value": "application/rss+xml, application/atom+xml, application/xml, text/xml, */*"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "neverError": true
+            }
+          },
+          "timeout": 20000,
+          "batching": {
+            "batch": {
+              "batchSize": 3,
+              "batchInterval": 1200
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "e382cf4f-3bcc-49f3-aba1-5d4d55ad52e6",
+      "name": "Parser et normaliser",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        112
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "function decodeXml(text) {\n  return String(text || '')\n    .replace(/<!\\\\[CDATA\\\\[([\\\\s\\\\S]*?)\\\\]\\\\]>/g, '$1')\n    .replace(/&amp;/g, '&')\n    .replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>')\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\")\n    .replace(/\\\\s+/g, ' ')\n    .trim();\n}\n\nfunction firstMatch(block, patterns) {\n  for (const pattern of patterns) {\n    const match = block.match(pattern);\n    if (match && match[1]) return decodeXml(match[1]);\n  }\n  return '';\n}\n\nfunction parseFeed(xml, meta) {\n  const items = [];\n  if (!xml || typeof xml !== 'string') return items;\n\n  const entryRegex = /<(?:item|entry)\\\\b[\\\\s\\\\S]*?<\\\\/(?:item|entry)>/gi;\n  const blocks = xml.match(entryRegex) || [];\n\n  for (const block of blocks) {\n    const title = firstMatch(block, [\n      /<title[^>]*>([\\\\s\\\\S]*?)<\\\\/title>/i,\n    ]);\n    const url = firstMatch(block, [\n      /<link[^>]*href=[\"']([^\"']+)[\"'][^>]*>/i,\n      /<link[^>]*>([\\\\s\\\\S]*?)<\\\\/link>/i,\n      /<id[^>]*>([\\\\s\\\\S]*?)<\\\\/id>/i,\n      /<guid[^>]*>([\\\\s\\\\S]*?)<\\\\/guid>/i,\n    ]);\n    const description = firstMatch(block, [\n      /<summary[^>]*>([\\\\s\\\\S]*?)<\\\\/summary>/i,\n      /<content[^>]*>([\\\\s\\\\S]*?)<\\\\/content>/i,\n      /<description[^>]*>([\\\\s\\\\S]*?)<\\\\/description>/i,\n      /<media:description[^>]*>([\\\\s\\\\S]*?)<\\\\/media:description>/i,\n    ]).replace(/<[^>]+>/g, ' ').slice(0, 800);\n    const publishedAt = firstMatch(block, [\n      /<published[^>]*>([\\\\s\\\\S]*?)<\\\\/published>/i,\n      /<updated[^>]*>([\\\\s\\\\S]*?)<\\\\/updated>/i,\n      /<pubDate[^>]*>([\\\\s\\\\S]*?)<\\\\/pubDate>/i,\n      /<dc:date[^>]*>([\\\\s\\\\S]*?)<\\\\/dc:date>/i,\n    ]);\n\n    if (!title || !url) continue;\n\n    items.push({\n      json: {\n        title,\n        url: url.trim(),\n        description,\n        publishedAt,\n        source: meta.source,\n        label: meta.label,\n        subreddit: meta.subreddit || '',\n      },\n    });\n  }\n  return items;\n}\n\nconst results = [];\nconst sourceItems = $('Configurer les sources').all();\n\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n  const sourceMeta = sourceItems[i] ? sourceItems[i].json : {};\n  const meta = {\n    source: sourceMeta.source || item.json.source || 'rss',\n    label: sourceMeta.label || item.json.label || 'unknown',\n    subreddit: sourceMeta.subreddit || item.json.subreddit || '',\n  };\n  const xml = item.json.data || item.json.body || (typeof item.json === 'string' ? item.json : '');\n  results.push(...parseFeed(xml, meta));\n}\n\nreturn results;"
+      }
+    },
+    {
+      "id": "91d0e0f6-eb75-4f8a-bb25-2203eccebb7e",
+      "name": "Filtrer dedup et scorer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        112
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const KEYWORDS = [\n  'automatisation', 'automation', 'workflow', 'process', 'business process',\n  'RPA', 'no-code', 'low-code', 'intégration', 'integration', 'API',\n  'IA', 'intelligence artificielle', 'artificial intelligence', 'machine learning', 'ML', 'LLM',\n  'agent', 'agents IA', 'AI agent', 'multi-agent', 'autonomous',\n  'freelance', 'SaaS', 'indie hacker', 'productized service', 'AI agency',\n];\n\nconst WINDOW_MS = 24 * 60 * 60 * 1000;\nconst now = Date.now();\nconst seen = new Set();\nconst scored = [];\n\nfunction keywordScore(text) {\n  const hay = String(text || '').toLowerCase();\n  let score = 0;\n  for (const kw of KEYWORDS) {\n    if (hay.includes(kw.toLowerCase())) score += 1;\n  }\n  return score;\n}\n\nfunction parseDate(value) {\n  if (!value) return null;\n  const d = new Date(value);\n  return Number.isNaN(d.getTime()) ? null : d.getTime();\n}\n\nfor (const item of items) {\n  const data = item.json;\n  const url = String(data.url || '').split('?')[0].replace(/\\\\/$/, '');\n  if (!url || seen.has(url)) continue;\n  seen.add(url);\n\n  const publishedMs = parseDate(data.publishedAt);\n  // Si la date est absente (certains flux), on garde l'item (mieux que de tout perdre).\n  if (publishedMs !== null && now - publishedMs > WINDOW_MS) continue;\n\n  const blob = \\`\\${data.title || ''} \\${data.description || ''}\\`;\n  const kwScore = keywordScore(blob);\n  if (kwScore < 1) continue;\n\n  scored.push({\n    json: {\n      title: data.title,\n      url,\n      description: data.description || '',\n      publishedAt: data.publishedAt || new Date().toISOString(),\n      source: data.source,\n      label: data.label,\n      subreddit: data.subreddit || '',\n      keywordScore: kwScore,\n    },\n  });\n}\n\nscored.sort((a, b) => b.json.keywordScore - a.json.keywordScore);\n// Limite avant IA pour cout / latence\nreturn scored.slice(0, 25);"
+      }
+    },
+    {
+      "id": "995b017b-e311-4e10-9905-32c87a17a523",
+      "name": "Enrichir resume score categorie",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        112
+      ],
+      "parameters": {
+        "text": "={{ \"Title: \" + $json.title + \"\\nSource: \" + $json.source + \"\\nLabel: \" + $json.label + \"\\nSubreddit: \" + ($json.subreddit || \"\") + \"\\nDescription: \" + $json.description + \"\\nURL: \" + $json.url + \"\\nKeywordScore: \" + $json.keywordScore }}",
+        "schemaType": "fromJson",
+        "jsonSchemaExample": "{\n  \"summary\": \"Resume en 1 phrase en francais, oriente opportunite business pour Myrak.\",\n  \"score\": 7,\n  \"category\": \"automatisation\"\n}",
+        "options": {
+          "systemPromptTemplate": "Tu es l'analyste de veille technologique de Myrak.\n\nContexte Myrak :\n- Myrak aide les entreprises et les freelances a automatiser des process metiers (workflows, RPA, integrations, orchestration) et a utiliser l'IA / le machine learning (agents IA, automatisation intelligente, use cases business).\n- Cibles principales : freelances (developpeurs, data, automation, consultants) et PME / startups qui veulent automatiser avec l'IA.\n\nPour chaque item fourni (title, description, source), produis UNIQUEMENT un JSON valide avec :\n{\n  \"summary\": \"Resume en 1 phrase en francais, oriente opportunite / use case business pour Myrak.\",\n  \"score\": 7,\n  \"category\": \"automatisation\"\n}\n\nCategories autorisees (choisir exactement une) :\n- \"automatisation\"\n- \"IA_ML\"\n- \"agents_IA\"\n- \"no_code_low_code\"\n- \"SaaS_freelance\"\n- \"autre\"\n\nCriteres de score (entier de 1 a 10) :\n1. Pertinence directe pour Myrak (automation + IA + agents).\n2. Potentiel d'usage dans des projets clients (freelance / PME).\n3. Interet pour des freelances qui vendent ce type de prestations.\n\nRegles :\n- summary : une seule phrase, claire, actionnable, en francais.\n- score : entier 1-10 (pas de decimale).\n- category : une des valeurs listees ci-dessus.\n- N'invente pas de faits absents du titre / description.\n- Si l'item est peu pertinent, mets un score bas et category \"autre\".\n- Ne renvoie aucun texte hors JSON.",
+          "batching": {
+            "batchSize": 5,
+            "delayBetweenBatches": 800
+          }
+        }
+      }
+    },
+    {
+      "id": "0f4b4e4e-0510-4a6c-a2d0-33c60780b342",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1200,
+        336
+      ],
+      "parameters": {
+        "modelName": "models/gemini-flash-latest",
+        "options": {
+          "temperature": 0.2,
+          "maxOutputTokens": 512
+        }
+      }
+    },
+    {
+      "id": "2ebe37e1-dd22-41dc-a710-652192ebcc1f",
+      "name": "Formater message Slack",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1472,
+        112
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const allowedCategories = new Set([\n  'automatisation', 'IA_ML', 'agents_IA', 'no_code_low_code', 'SaaS_freelance', 'autre',\n]);\n\nconst enriched = items.map((item) => {\n  const data = item.json;\n  const ai = data.output || {};\n  const aiScore = Number(ai.score);\n  const keywordScore = Number(data.keywordScore) || 0;\n  const score = Number.isFinite(aiScore) ? aiScore : 0;\n  const category = allowedCategories.has(ai.category) ? ai.category : 'autre';\n  const summary = String(ai.summary || data.description || '').replace(/\\\\n+/g, ' ').trim();\n  const finalScore = score + keywordScore * 0.25;\n  return {\n    title: data.title,\n    url: data.url,\n    source: data.source,\n    label: data.label,\n    subreddit: data.subreddit || '',\n    category,\n    summary,\n    score,\n    keywordScore,\n    finalScore,\n    publishedAt: data.publishedAt,\n  };\n});\n\nenriched.sort((a, b) => b.finalScore - a.finalScore || b.score - a.score);\nconst top = enriched.slice(0, 15);\nconst top3 = top.slice(0, 3);\n\nconst bySource = {\n  product_hunt: top.filter((i) => i.source === 'product_hunt'),\n  reddit: top.filter((i) => i.source === 'reddit'),\n  rss: top.filter((i) => i.source === 'rss'),\n};\n\nconst now = new Date();\nconst dateLabel = now.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });\n\nfunction line(item, withSubreddit = false) {\n  const meta = withSubreddit && item.subreddit\n    ? \\`r/\\${item.subreddit}\\`\n    : item.category;\n  return \\`- <\\${item.url}|\\${item.title}> – \\${meta} – \\${item.summary} Score: \\${item.score}/10\\`;\n}\n\nfunction numbered(item, idx) {\n  return \\`\\${idx}. <\\${item.url}|\\${item.title}> – \\${item.category} – \\${item.summary} Score: \\${item.score}/10\\`;\n}\n\nlet message = \\`🧭 *Veille Myrak – \\${dateLabel}*\\\\n\\\\n\\`;\nmessage += \\`⭐ *Top 3 du jour*\\\\n\\`;\nif (top3.length === 0) {\n  message += \\`_Aucun item pertinent sur les dernieres 24h._\\\\n\\`;\n} else {\n  top3.forEach((item, idx) => {\n    message += \\`\\${numbered(item, idx + 1)}\\\\n\\`;\n  });\n}\n\nmessage += \\`\\\\n🚀 *Product Hunt*\\\\n\\`;\nmessage += bySource.product_hunt.length\n  ? bySource.product_hunt.map((i) => line(i)).join('\\\\n') + '\\\\n'\n  : \\`_Aucun lancement pertinent._\\\\n\\`;\n\nmessage += \\`\\\\n🔴 *Reddit*\\\\n\\`;\nmessage += bySource.reddit.length\n  ? bySource.reddit.map((i) => line(i, true)).join('\\\\n') + '\\\\n'\n  : \\`_Aucun post pertinent._\\\\n\\`;\n\nmessage += \\`\\\\n📰 *Blogs / RSS*\\\\n\\`;\nmessage += bySource.rss.length\n  ? bySource.rss.map((i) => line(i)).join('\\\\n') + '\\\\n'\n  : \\`_Aucun article pertinent._\\\\n\\`;\n\nconst rows = top.map((item) => ({\n  date: item.publishedAt || now.toISOString(),\n  source: item.source,\n  title: item.title,\n  url: item.url,\n  category: item.category,\n  score: item.score,\n  summary: item.summary,\n  subreddit: item.subreddit || '',\n  keyword_score: item.keywordScore,\n}));\n\nreturn [{\n  json: {\n    slackMessage: message.trim(),\n    itemCount: top.length,\n    rows,\n  },\n}];"
+      }
+    },
+    {
+      "id": "c8078e72-a680-486d-b85e-0bf16757cf80",
+      "name": "Poster Daily Digest Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        1696,
+        16
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "authentication": "accessToken",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "veille-myrak"
+        },
+        "messageType": "text",
+        "text": "={{ $json.slackMessage }}",
+        "otherOptions": {
+          "mrkdwn": true,
+          "includeLinkToWorkflow": false,
+          "unfurl_links": false,
+          "unfurl_media": false
+        }
+      },
+      "credentials": {
+        "slackApi": {
+          "id": "glUYO0J1CYNMt2ba",
+          "name": "Slack account"
+        }
+      },
+      "webhookId": "577da355-8dd4-499f-a8a6-350d771c453c"
+    },
+    {
+      "id": "0d572beb-8e3a-4de1-a11f-12a3fa839367",
+      "name": "Eclater lignes a logger",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1696,
+        208
+      ],
+      "parameters": {
+        "fieldToSplitOut": "rows",
+        "include": "noOtherFields"
+      }
+    },
+    {
+      "id": "b8d91f70-3377-43cf-b5e6-5d43a2a461f6",
+      "name": "Logger Veille Myrak",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1920,
+        208
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "Xy0t5AMfnnBFbx9e",
+          "cachedResultName": "Veille Myrak"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "date": "={{ $json.date }}",
+            "source": "={{ $json.source }}",
+            "title": "={{ $json.title }}",
+            "url": "={{ $json.url }}",
+            "category": "={{ $json.category }}",
+            "score": "={{ $json.score }}",
+            "summary": "={{ $json.summary }}",
+            "subreddit": "={{ $json.subreddit }}",
+            "keyword_score": "={{ $json.keyword_score }}"
+          }
+        },
+        "options": {
+          "optimizeBulk": true
+        }
+      }
+    },
+    {
+      "id": "011a40f2-9443-433a-afd9-e993d545defc",
+      "name": "Sticky Note da3829c0",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        800,
+        256
+      ],
+      "parameters": {
+        "content": "## Veille Myrak – Daily Digest\n\n1. Creer le canal Slack `#veille-myrak` et inviter le bot.\n2. Configurer le credential **Google Gemini API**.\n3. Verifier le credential **Slack account**.\n4. Sources / mots-cles : noeud **Configurer les sources** et **Filtrer dedup et scorer**.\n5. Pour desactiver le log : desactiver le noeud **Logger Veille Myrak**.",
+        "width": 420,
+        "height": 220
+      }
+    }
+  ]
+}

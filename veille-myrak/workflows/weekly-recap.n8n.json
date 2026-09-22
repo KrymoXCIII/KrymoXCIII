@@ -1,0 +1,232 @@
+{
+  "name": "Myrak – Weekly Recap Veille",
+  "id": "2qqzTC8y2Ou4y05b",
+  "description": "Récap hebdomadaire de veille techno depuis la Data Table Veille Myrak, résumé via Gemini et posté sur Slack #veille-myrak.",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp"
+  },
+  "versionId": "974d7d48-b919-4e7b-b719-5dbe2f357a52",
+  "tags": [],
+  "pinData": {},
+  "connections": {
+    "Tous les lundis a 9h": {
+      "main": [
+        [
+          {
+            "node": "Lire Veille Myrak",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire Veille Myrak": {
+      "main": [
+        [
+          {
+            "node": "Filtrer 7j et preparer prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrer 7j et preparer prompt": {
+      "main": [
+        [
+          {
+            "node": "Generer Weekly Recap Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generer Weekly Recap Gemini": {
+      "main": [
+        [
+          {
+            "node": "Formater message Slack Weekly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formater message Slack Weekly": {
+      "main": [
+        [
+          {
+            "node": "Poster Weekly Recap Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "nodes": [
+    {
+      "id": "1725471f-c7e1-40b9-b3db-37372808855b",
+      "name": "Tous les lundis a 9h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "095846cc-d711-4c29-9880-d81d0cb0a57e",
+      "name": "Lire Veille Myrak",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "Xy0t5AMfnnBFbx9e",
+          "cachedResultName": "Veille Myrak"
+        },
+        "returnAll": true
+      }
+    },
+    {
+      "id": "0d07d737-bffb-4bda-a132-e144f40ce0db",
+      "name": "Filtrer 7j et preparer prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const WINDOW_MS = 7 * 24 * 60 * 60 * 1000;\nconst now = Date.now();\n\nfunction parseDate(value) {\n  if (!value) return null;\n  const d = new Date(value);\n  return Number.isNaN(d.getTime()) ? null : d.getTime();\n}\n\nconst weekItems = [];\nfor (const item of items) {\n  const data = item.json;\n  const ms = parseDate(data.date || data.publishedAt || data.createdAt);\n  if (ms !== null && now - ms > WINDOW_MS) continue;\n  weekItems.push({\n    title: data.title || '',\n    url: data.url || '',\n    category: data.category || 'autre',\n    score: Number(data.score) || 0,\n    summary: data.summary || '',\n    source: data.source || '',\n    subreddit: data.subreddit || '',\n  });\n}\n\nweekItems.sort((a, b) => b.score - a.score);\n\nconst d = new Date();\nconst onejan = new Date(d.getFullYear(), 0, 1);\nconst weekNum = Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7);\nconst year = d.getFullYear();\n\nconst listText = weekItems.length\n  ? weekItems.map((it, i) => (\n      (i + 1) + '. [' + it.score + '/10] ' + it.title + ' | ' + it.category + ' | ' + it.source\n      + '\\n   URL: ' + it.url\n      + '\\n   Resume: ' + it.summary\n    )).join('\\n')\n  : 'Aucun item sur les 7 derniers jours.';\n\nconst userMessage = 'Semaine ' + weekNum + '/' + year + ' — ' + weekItems.length + ' items:\\n\\n' + listText;\n\nreturn [{\n  json: {\n    weekNum,\n    year,\n    itemCount: weekItems.length,\n    userMessage,\n    items: weekItems,\n  },\n}];"
+      }
+    },
+    {
+      "id": "553ee8f6-37dc-4801-bd02-a51fcb22af95",
+      "name": "Generer Weekly Recap Gemini",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "models/gemini-flash-latest",
+          "cachedResultName": "models/gemini-flash-latest"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.userMessage }}"
+            }
+          ]
+        },
+        "simplify": true,
+        "jsonOutput": false,
+        "options": {
+          "systemMessage": "Tu es le stratège de veille de Myrak. Contexte: automation + IA + agents pour freelances/PME. À partir de la liste d'items de la semaine, génère un récap Slack mrkdwn avec: titre Semaine N/YYYY, Top 5, Tendances (3 bullets), Idées pour Myrak (3 bullets). Liens au format <url|titre>. Français. Pas de JSON.",
+          "maxOutputTokens": 2048,
+          "temperature": 0.4
+        }
+      }
+    },
+    {
+      "id": "7b7e6122-234b-4ae0-810a-c508783248fa",
+      "name": "Formater message Slack Weekly",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const item = items[0].json;\nlet text = '';\nif (typeof item.text === 'string') text = item.text;\nelse if (typeof item.content === 'string') text = item.content;\nelse if (item.candidates && item.candidates[0]) {\n  const parts = item.candidates[0].content?.parts || [];\n  text = parts.map((p) => p.text || '').join('\\n');\n} else if (item.output) {\n  text = typeof item.output === 'string' ? item.output : JSON.stringify(item.output);\n} else {\n  text = String(item.slackMessage || item.message || '');\n}\ntext = String(text || '').trim();\nif (!text) {\n  text = '_Weekly Recap: aucun contenu genere._';\n}\nreturn [{ json: { slackMessage: text } }];"
+      }
+    },
+    {
+      "id": "328a3af9-e2f1-4fb0-9889-df11037d0432",
+      "name": "Poster Weekly Recap Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "authentication": "accessToken",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "veille-myrak"
+        },
+        "messageType": "text",
+        "text": "={{ $json.slackMessage }}",
+        "otherOptions": {
+          "mrkdwn": true,
+          "includeLinkToWorkflow": false,
+          "unfurl_links": false,
+          "unfurl_media": false
+        }
+      },
+      "credentials": {
+        "slackApi": {
+          "id": "glUYO0J1CYNMt2ba",
+          "name": "Slack account"
+        }
+      },
+      "webhookId": "6d86d33d-7c7f-4483-969e-5c2b25d35502"
+    },
+    {
+      "id": "d7d95793-ed65-4947-b3be-b2ee725b7b22",
+      "name": "Sticky Note d5320d2f",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        384,
+        -160
+      ],
+      "parameters": {
+        "content": "## Veille Myrak – Weekly Recap\n\n1. Tourne chaque lundi a 9h (cron 0 9 * * 1).\n2. Lit la Data Table **Veille Myrak** (id Xy0t5AMfnnBFbx9e).\n3. Filtre les 7 derniers jours, resume via Gemini, poste sur Slack #veille-myrak.\n4. Credentials: Google Gemini API + Slack account.",
+        "width": 460,
+        "height": 320
+      }
+    }
+  ]
+}
