@@ -1,19 +1,42 @@
 {
-  "name": "Myrak – Daily Digest Veille",
   "id": "BL6qQXmVrZ4J577z",
-  "description": "Digest quotidien de veille techno (Product Hunt, Reddit RSS, blogs) posté sur Slack #veille-myrak avec enrichissement Gemini et log Data Table.",
+  "name": "Myrak – Daily Digest Veille",
   "active": false,
+  "isArchived": false,
+  "versionId": "28c3ee09-3a15-43ed-b3f6-2297d62631c5",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "nodeCount": 13,
+  "createdAt": "2026-09-22T11:17:17.265Z",
+  "updatedAt": "2026-09-22T11:42:57.933Z",
   "settings": {
     "executionOrder": "v1",
-    "availableInMCP": true
+    "availableInMCP": true,
+    "binaryMode": "separate"
   },
-  "meta": {
-    "aiBuilderAssisted": true,
-    "builderVariant": "mcp"
-  },
-  "versionId": "162bf174-ba2d-4252-90e2-1e38e266f324",
   "tags": [],
-  "pinData": {},
+  "parentFolderId": null,
+  "description": "Digest quotidien de veille techno (Product Hunt, Reddit RSS, blogs) posté sur Slack #veille-myrak avec enrichissement OpenRouter (modèles gratuits) et log Data Table.",
+  "scopes": [
+    "execution:reveal",
+    "workflow:create",
+    "workflow:delete",
+    "workflow:disableRedaction",
+    "workflow:enableRedaction",
+    "workflow:execute",
+    "workflow:execute-chat",
+    "workflow:export",
+    "workflow:import",
+    "workflow:list",
+    "workflow:move",
+    "workflow:publish",
+    "workflow:read",
+    "workflow:share",
+    "workflow:unpublish",
+    "workflow:unshare",
+    "workflow:update"
+  ],
+  "canExecute": true,
   "connections": {
     "Tous les jours a 8h": {
       "main": [
@@ -63,30 +86,41 @@
       "main": [
         [
           {
-            "node": "Enrichir resume score categorie",
+            "node": "Preparer batch OpenRouter",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Enrichir resume score categorie": {
+    "Preparer batch OpenRouter": {
+      "main": [
+        [
+          {
+            "node": "Appeler OpenRouter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Appeler OpenRouter": {
+      "main": [
+        [
+          {
+            "node": "Parser reponse OpenRouter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser reponse OpenRouter": {
       "main": [
         [
           {
             "node": "Formater message Slack",
             "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Google Gemini Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Enrichir resume score categorie",
-            "type": "ai_languageModel",
             "index": 0
           }
         ]
@@ -232,51 +266,12 @@
       }
     },
     {
-      "id": "995b017b-e311-4e10-9905-32c87a17a523",
-      "name": "Enrichir resume score categorie",
-      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
-      "typeVersion": 1.2,
-      "position": [
-        1120,
-        112
-      ],
-      "parameters": {
-        "text": "={{ \"Title: \" + $json.title + \"\\nSource: \" + $json.source + \"\\nLabel: \" + $json.label + \"\\nSubreddit: \" + ($json.subreddit || \"\") + \"\\nDescription: \" + $json.description + \"\\nURL: \" + $json.url + \"\\nKeywordScore: \" + $json.keywordScore }}",
-        "schemaType": "fromJson",
-        "jsonSchemaExample": "{\n  \"summary\": \"Resume en 1 phrase en francais, oriente opportunite business pour Myrak.\",\n  \"score\": 7,\n  \"category\": \"automatisation\"\n}",
-        "options": {
-          "systemPromptTemplate": "Tu es l'analyste de veille technologique de Myrak.\n\nContexte Myrak :\n- Myrak aide les entreprises et les freelances a automatiser des process metiers (workflows, RPA, integrations, orchestration) et a utiliser l'IA / le machine learning (agents IA, automatisation intelligente, use cases business).\n- Cibles principales : freelances (developpeurs, data, automation, consultants) et PME / startups qui veulent automatiser avec l'IA.\n\nPour chaque item fourni (title, description, source), produis UNIQUEMENT un JSON valide avec :\n{\n  \"summary\": \"Resume en 1 phrase en francais, oriente opportunite / use case business pour Myrak.\",\n  \"score\": 7,\n  \"category\": \"automatisation\"\n}\n\nCategories autorisees (choisir exactement une) :\n- \"automatisation\"\n- \"IA_ML\"\n- \"agents_IA\"\n- \"no_code_low_code\"\n- \"SaaS_freelance\"\n- \"autre\"\n\nCriteres de score (entier de 1 a 10) :\n1. Pertinence directe pour Myrak (automation + IA + agents).\n2. Potentiel d'usage dans des projets clients (freelance / PME).\n3. Interet pour des freelances qui vendent ce type de prestations.\n\nRegles :\n- summary : une seule phrase, claire, actionnable, en francais.\n- score : entier 1-10 (pas de decimale).\n- category : une des valeurs listees ci-dessus.\n- N'invente pas de faits absents du titre / description.\n- Si l'item est peu pertinent, mets un score bas et category \"autre\".\n- Ne renvoie aucun texte hors JSON.",
-          "batching": {
-            "batchSize": 5,
-            "delayBetweenBatches": 800
-          }
-        }
-      }
-    },
-    {
-      "id": "0f4b4e4e-0510-4a6c-a2d0-33c60780b342",
-      "name": "Google Gemini Chat Model",
-      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
-      "typeVersion": 1.1,
-      "position": [
-        1200,
-        336
-      ],
-      "parameters": {
-        "modelName": "models/gemini-flash-latest",
-        "options": {
-          "temperature": 0.2,
-          "maxOutputTokens": 512
-        }
-      }
-    },
-    {
       "id": "2ebe37e1-dd22-41dc-a710-652192ebcc1f",
       "name": "Formater message Slack",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1472,
+        1792,
         112
       ],
       "parameters": {
@@ -382,10 +377,87 @@
         256
       ],
       "parameters": {
-        "content": "## Veille Myrak – Daily Digest\n\n1. Creer le canal Slack `#veille-myrak` et inviter le bot.\n2. Configurer le credential **Google Gemini API**.\n3. Verifier le credential **Slack account**.\n4. Sources / mots-cles : noeud **Configurer les sources** et **Filtrer dedup et scorer**.\n5. Pour desactiver le log : desactiver le noeud **Logger Veille Myrak**.",
-        "width": 420,
-        "height": 220
+        "content": "## Veille Myrak – Daily Digest (OpenRouter)\n\n1. Créer le canal `#veille-myrak` et inviter le bot.\n2. Créer le credential **OpenRouter API** (Bearer Auth = clé API).\n3. Vérifier le credential **Slack account**.\n4. Modèle gratuit : `meta-llama/llama-3.3-70b-instruct:free` (nœud Preparer batch OpenRouter).\n5. Pour désactiver le log : désactiver **Logger Veille Myrak**.",
+        "width": 440,
+        "height": 260
+      }
+    },
+    {
+      "id": "e01f8e58-e20a-4c24-817b-9be0fbb7bc90",
+      "name": "Preparer batch OpenRouter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        112
+      ],
+      "parameters": {
+        "jsCode": "const SYSTEM_PROMPT = `Tu es l'analyste de veille technologique de Myrak.\n\nContexte Myrak :\n- Myrak aide les entreprises et les freelances à automatiser des process métiers (workflows, RPA, intégrations, orchestration) et à utiliser l'IA / le machine learning (agents IA, automatisation intelligente, use cases business).\n- Cibles principales : freelances (développeurs, data, automation, consultants) et PME / startups qui veulent automatiser avec l'IA.\n\nPour CHAQUE item fourni, produis un objet avec :\n- summary : résumé en 1 phrase en français, orienté opportunité / use case business pour Myrak\n- score : entier de 1 à 10\n- category : une seule valeur parmi [\"automatisation\", \"IA_ML\", \"agents_IA\", \"no_code_low_code\", \"SaaS_freelance\", \"autre\"]\n- id : le même id que l'item d'entrée\n\nCritères de score (1–10) :\n1. Pertinence directe pour Myrak (automation + IA + agents)\n2. Potentiel d'usage dans des projets clients (freelance / PME)\n3. Intérêt pour des freelances qui vendent ce type de prestations\n\nRègles strictes :\n- Réponds UNIQUEMENT avec un JSON valide : un tableau d'objets\n- Aucun texte avant ou après le JSON, pas de markdown, pas de backticks\n- Une seule phrase pour summary\n- score = entier (pas de décimale)\n- N'invente pas de faits absents du titre / description\n- Si peu pertinent : score bas et category \\\"autre\\\"\n\nFormat de sortie attendu :\n[\n  {\\\"id\\\": 0, \\\"summary\\\": \\\"...\\\", \\\"score\\\": 8, \\\"category\\\": \\\"agents_IA\\\"}\n]`;\n\nconst payloadItems = items.map((item, index) => ({\n  id: index,\n  title: item.json.title || '',\n  description: item.json.description || '',\n  source: item.json.source || '',\n  url: item.json.url || '',\n  label: item.json.label || '',\n  subreddit: item.json.subreddit || '',\n  keywordScore: item.json.keywordScore || 0,\n  publishedAt: item.json.publishedAt || '',\n}));\n\nconst userPrompt = `Analyse les items de veille suivants et renvoie UNIQUEMENT le tableau JSON demandé.\\n\\nItems :\\n${JSON.stringify(payloadItems, null, 2)}`;\n\nreturn [{\n  json: {\n    items: payloadItems,\n    openRouterBody: {\n      model: 'meta-llama/llama-3.3-70b-instruct:free',\n      temperature: 0.3,\n      messages: [\n        { role: 'system', content: SYSTEM_PROMPT },\n        { role: 'user', content: userPrompt },\n      ],\n    },\n  },\n}];\n",
+        "language": "javaScript",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "a4d6d5f7-7d88-4c32-8bdf-d955834182ae",
+      "name": "Appeler OpenRouter",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1344,
+        112
+      ],
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "contentType": "json",
+        "genericAuthType": "httpBearerAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "HTTP-Referer",
+              "value": "https://myrak.fr"
+            },
+            {
+              "name": "X-Title",
+              "value": "Myrak Veille"
+            }
+          ]
+        },
+        "jsonBody": "={{ $json.openRouterBody }}",
+        "method": "POST",
+        "options": {
+          "timeout": 120000
+        },
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://openrouter.ai/api/v1/chat/completions"
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "executeOnce": true
+    },
+    {
+      "id": "91bdcbda-5fb0-46e4-8bbc-42092d34fa80",
+      "name": "Parser reponse OpenRouter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        112
+      ],
+      "parameters": {
+        "jsCode": "const allowedCategories = new Set([\n  'automatisation', 'IA_ML', 'agents_IA', 'no_code_low_code', 'SaaS_freelance', 'autre',\n]);\n\nconst originalItems = $('Preparer batch OpenRouter').first().json.items || [];\n\nlet content = '';\nconst raw = items[0]?.json || {};\nif (raw.choices && raw.choices[0]?.message?.content) {\n  content = String(raw.choices[0].message.content);\n} else if (typeof raw.message === 'string') {\n  content = raw.message;\n} else if (typeof raw.data === 'string') {\n  content = raw.data;\n} else {\n  content = JSON.stringify(raw);\n}\n\ncontent = content\n  .replace(/^```(?:json)?\\s*/i, '')\n  .replace(/\\s*```$/i, '')\n  .trim();\n\nconst jsonMatch = content.match(/\\[[\\s\\S]*\\]/);\nif (jsonMatch) content = jsonMatch[0];\n\nlet parsed;\ntry {\n  parsed = JSON.parse(content);\n} catch (error) {\n  throw new Error('Impossible de parser le JSON OpenRouter: ' + error.message + ' | Contenu: ' + content.slice(0, 500));\n}\n\nconst aiResults = Array.isArray(parsed)\n  ? parsed\n  : (parsed.items || parsed.results || parsed.data || []);\n\nconst byId = new Map();\nfor (const row of aiResults) {\n  if (row && (row.id === 0 || row.id)) byId.set(Number(row.id), row);\n}\n\nreturn originalItems.map((item, index) => {\n  const ai = byId.get(index) || byId.get(Number(item.id)) || aiResults[index] || {};\n  const score = Number(ai.score);\n  const category = allowedCategories.has(ai.category) ? ai.category : 'autre';\n  const summary = String(ai.summary || item.description || '').replace(/\\n+/g, ' ').trim();\n\n  return {\n    json: {\n      ...item,\n      summary,\n      score: Number.isFinite(score) ? score : 0,\n      category,\n      output: {\n        summary,\n        score: Number.isFinite(score) ? score : 0,\n        category,\n      },\n    },\n  };\n});\n",
+        "language": "javaScript",
+        "mode": "runOnceForAllItems"
       }
     }
-  ]
+  ],
+  "nodeGroups": [],
+  "activeVersion": null,
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp"
+  }
 }

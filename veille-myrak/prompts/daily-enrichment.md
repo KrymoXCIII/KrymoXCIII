@@ -1,5 +1,15 @@
 # Prompt système – Enrichissement Daily Digest
 
+> **Usage actuel** : ce prompt est envoyé via **HTTP Request → OpenRouter**
+> (`https://openrouter.ai/api/v1/chat/completions`), credential **Bearer Auth**
+> (`OpenRouter API`), modèle gratuit par défaut
+> `meta-llama/llama-3.3-70b-instruct:free`.
+>
+> Dans le workflow Daily Digest, le nœud **Preparer batch OpenRouter** injecte
+> ce system prompt + un user prompt batch (tableau d’items avec `id`), puis
+> **Parser reponse OpenRouter** fusionne le JSON renvoyé.
+> Détails : [docs/OPENROUTER.md](../docs/OPENROUTER.md).
+
 ```text
 Tu es l'analyste de veille technologique de Myrak.
 

@@ -2,7 +2,7 @@
 
 Système de veille techno pour **Myrak** : digest quotidien Slack + récap hebdomadaire stratégique.
 
-Workflows déjà créés sur l’instance n8n Myrak (inactifs tant que Gemini / canal Slack ne sont pas prêts) :
+Workflows déjà créés sur l’instance n8n Myrak (inactifs tant que OpenRouter / canal Slack ne sont pas prêts) :
 
 | Workflow | ID n8n | URL |
 |---|---|---|
@@ -69,12 +69,13 @@ Ajouts justifiés : couverture IA générale, frameworks d’agents, et indie / 
 | 3 | Recuperer les flux RSS | HTTP Request | GET XML/Atom (batch 3, User-Agent Myrak) |
 | 4 | Parser et normaliser | Code | Parse RSS/Atom → title, url, description, date, source |
 | 5 | Filtrer dedup et scorer | Code | Mots-clés, dédup URL, fenêtre 24h, top 25 candidats |
-| 6 | Enrichir resume score categorie | Information Extractor | JSON `summary` / `score` / `category` |
-| 7 | Google Gemini Chat Model | Gemini Chat Model | Modèle derrière l’extracteur |
-| 8 | Formater message Slack | Code | Top 15, Top 3, message mrkdwn + rows log |
-| 9 | Poster Daily Digest Slack | Slack Post Message | Canal `#veille-myrak` |
-| 10 | Eclater lignes a logger | Split Out | Une ligne = un item |
-| 11 | Logger Veille Myrak | Data Table Insert | Historique pour le Weekly |
+| 6 | Preparer batch OpenRouter | Code | Agrège les items + body chat completions (modèle `:free`) |
+| 7 | Appeler OpenRouter | HTTP Request | POST `openrouter.ai` (Bearer Auth) |
+| 8 | Parser reponse OpenRouter | Code | Mappe `summary` / `score` / `category` sur chaque item |
+| 9 | Formater message Slack | Code | Top 15, Top 3, message mrkdwn + rows log |
+| 10 | Poster Daily Digest Slack | Slack Post Message | Canal `#veille-myrak` |
+| 11 | Eclater lignes a logger | Split Out | Une ligne = un item |
+| 12 | Logger Veille Myrak | Data Table Insert | Historique pour le Weekly |
 
 ### Weekly Recap — lundis 09:00
 
@@ -82,10 +83,12 @@ Ajouts justifiés : couverture IA générale, frameworks d’agents, et indie / 
 |---|---|---|---|
 | 1 | Tous les lundis a 9h | Schedule Trigger | Cron `0 9 * * 1` |
 | 2 | Lire Veille Myrak | Data Table Get | Tous les items loggés |
-| 3 | Filtrer 7j et preparer prompt | Code | Fenêtre 7 jours + prompt synthèse |
-| 4 | Generer Weekly Recap Gemini | Google Gemini (text) | Top 5, tendances, idées Myrak |
+| 3 | Filtrer 7j et preparer prompt | Code | Fenêtre 7 jours + body OpenRouter |
+| 4 | Appeler OpenRouter Weekly | HTTP Request | Synthèse Top 5 / tendances / idées Myrak |
 | 5 | Formater message Slack Weekly | Code | Texte final Slack |
 | 6 | Poster Weekly Recap Slack | Slack Post Message | Canal `#veille-myrak` |
+
+Détail IA (prompts, modèles gratuits, credential Bearer) : voir **[OPENROUTER.md](./OPENROUTER.md)**.
 
 ---
 
@@ -94,7 +97,7 @@ Ajouts justifiés : couverture IA générale, frameworks d’agents, et indie / 
 ### Sur l’instance Myrak (déjà en place)
 
 1. Ouvrir les URLs ci-dessus.
-2. Créer le credential **Google Gemini API** (type Google Gemini / PaLM) et le lier aux nœuds IA.
+2. Créer le credential **OpenRouter API** (Bearer Auth = clé API OpenRouter) et le lier aux nœuds HTTP OpenRouter.
 3. Vérifier le credential **Slack account** (déjà présent).
 4. Créer le canal Slack `#veille-myrak` et **inviter le bot**.
 5. Activer les workflows (toggle Active).
@@ -104,7 +107,7 @@ Ajouts justifiés : couverture IA générale, frameworks d’agents, et indie / 
 
 1. n8n → **Workflows** → **Import from File**.
 2. Importer `workflows/daily-digest.n8n.json` puis `workflows/weekly-recap.n8n.json`.
-3. Recréer / mapper les credentials (Slack, Gemini).
+3. Recréer / mapper les credentials (Slack, OpenRouter Bearer Auth).
 4. Recréer une Data Table `Veille Myrak` avec les colonnes : `date`, `source`, `title`, `url`, `category`, `score`, `summary`, `subreddit`, `keyword_score` — puis mettre à jour l’ID dans les nœuds Data Table.
 5. Activer.
 
@@ -115,11 +118,13 @@ Ajouts justifiés : couverture IA générale, frameworks d’agents, et indie / 
 | Service | Credential n8n | Usage |
 |---|---|---|
 | Slack | `Slack account` (Bot Token) | Post Message `#veille-myrak` |
-| Google Gemini | `Google Gemini API` (à créer) | Enrichissement Daily + synthèse Weekly |
+| OpenRouter | `OpenRouter API` (Bearer Auth) | Enrichissement Daily + synthèse Weekly |
 | Data Table | Aucun (natif n8n) | Log + lecture historique |
 | Apify | Non utilisé | Reddit via RSS officiel |
 
 Scopes Slack utiles : `chat:write`, accès au canal (bot invité).
+
+Voir **[OPENROUTER.md](./OPENROUTER.md)** pour la clé API, les headers (`HTTP-Referer`, `X-Title`) et la liste des modèles `:free`.
 
 ---
 
@@ -133,8 +138,8 @@ Scopes Slack utiles : `chat:write`, accès au canal (bot invité).
 | Mots-clés | Nœud `Filtrer dedup et scorer` → tableau `KEYWORDS` |
 | Canal Slack | Nœuds Slack → `channelId` (mode name `veille-myrak`) |
 | Désactiver le log | Désactiver le nœud `Logger Veille Myrak` (le Weekly n’aura plus d’historique) |
-| Prompt Daily | `prompts/daily-enrichment.md` + `systemPromptTemplate` de l’Information Extractor |
-| Prompt Weekly | `prompts/weekly-recap.md` + `systemMessage` du nœud Gemini Weekly |
+| Prompt Daily / modèle | `prompts/daily-enrichment.md` + nœud `Preparer batch OpenRouter` (voir OPENROUTER.md) |
+| Prompt Weekly | `prompts/weekly-recap.md` + nœud `Filtrer 7j et preparer prompt` |
 
 ---
 
@@ -143,6 +148,9 @@ Scopes Slack utiles : `chat:write`, accès au canal (bot invité).
 ```text
 veille-myrak/
   docs/GUIDE.md              ← ce guide
+  docs/OPENROUTER.md         ← IA via OpenRouter (Bearer Auth, modèles :free)
+  docs/SCHEMAS.md
+  docs/SOURCES.md
   prompts/daily-enrichment.md
   prompts/weekly-recap.md
   workflows/daily-digest.n8n.json

@@ -1,19 +1,41 @@
 {
-  "name": "Myrak – Weekly Recap Veille",
   "id": "2qqzTC8y2Ou4y05b",
-  "description": "Récap hebdomadaire de veille techno depuis la Data Table Veille Myrak, résumé via Gemini et posté sur Slack #veille-myrak.",
+  "name": "Myrak – Weekly Recap Veille",
   "active": false,
+  "isArchived": false,
+  "versionId": "b8884f89-37b3-493a-a617-2481466bbf2b",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "nodeCount": 7,
+  "createdAt": "2026-09-22T11:12:59.079Z",
+  "updatedAt": "2026-09-22T11:43:53.456Z",
   "settings": {
     "executionOrder": "v1",
     "availableInMCP": true
   },
-  "meta": {
-    "aiBuilderAssisted": true,
-    "builderVariant": "mcp"
-  },
-  "versionId": "974d7d48-b919-4e7b-b719-5dbe2f357a52",
   "tags": [],
-  "pinData": {},
+  "parentFolderId": null,
+  "description": "Récap hebdomadaire depuis Data Table Veille Myrak, synthèse OpenRouter (modèles gratuits), Slack #veille-myrak.",
+  "scopes": [
+    "execution:reveal",
+    "workflow:create",
+    "workflow:delete",
+    "workflow:disableRedaction",
+    "workflow:enableRedaction",
+    "workflow:execute",
+    "workflow:execute-chat",
+    "workflow:export",
+    "workflow:import",
+    "workflow:list",
+    "workflow:move",
+    "workflow:publish",
+    "workflow:read",
+    "workflow:share",
+    "workflow:unpublish",
+    "workflow:unshare",
+    "workflow:update"
+  ],
+  "canExecute": true,
   "connections": {
     "Tous les lundis a 9h": {
       "main": [
@@ -41,14 +63,14 @@
       "main": [
         [
           {
-            "node": "Generer Weekly Recap Gemini",
+            "node": "Appeler OpenRouter Weekly",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Generer Weekly Recap Gemini": {
+    "Appeler OpenRouter Weekly": {
       "main": [
         [
           {
@@ -125,41 +147,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const WINDOW_MS = 7 * 24 * 60 * 60 * 1000;\nconst now = Date.now();\n\nfunction parseDate(value) {\n  if (!value) return null;\n  const d = new Date(value);\n  return Number.isNaN(d.getTime()) ? null : d.getTime();\n}\n\nconst weekItems = [];\nfor (const item of items) {\n  const data = item.json;\n  const ms = parseDate(data.date || data.publishedAt || data.createdAt);\n  if (ms !== null && now - ms > WINDOW_MS) continue;\n  weekItems.push({\n    title: data.title || '',\n    url: data.url || '',\n    category: data.category || 'autre',\n    score: Number(data.score) || 0,\n    summary: data.summary || '',\n    source: data.source || '',\n    subreddit: data.subreddit || '',\n  });\n}\n\nweekItems.sort((a, b) => b.score - a.score);\n\nconst d = new Date();\nconst onejan = new Date(d.getFullYear(), 0, 1);\nconst weekNum = Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7);\nconst year = d.getFullYear();\n\nconst listText = weekItems.length\n  ? weekItems.map((it, i) => (\n      (i + 1) + '. [' + it.score + '/10] ' + it.title + ' | ' + it.category + ' | ' + it.source\n      + '\\n   URL: ' + it.url\n      + '\\n   Resume: ' + it.summary\n    )).join('\\n')\n  : 'Aucun item sur les 7 derniers jours.';\n\nconst userMessage = 'Semaine ' + weekNum + '/' + year + ' — ' + weekItems.length + ' items:\\n\\n' + listText;\n\nreturn [{\n  json: {\n    weekNum,\n    year,\n    itemCount: weekItems.length,\n    userMessage,\n    items: weekItems,\n  },\n}];"
-      }
-    },
-    {
-      "id": "553ee8f6-37dc-4801-bd02-a51fcb22af95",
-      "name": "Generer Weekly Recap Gemini",
-      "type": "@n8n/n8n-nodes-langchain.googleGemini",
-      "typeVersion": 1.2,
-      "position": [
-        672,
-        0
-      ],
-      "parameters": {
-        "resource": "text",
-        "operation": "message",
-        "modelId": {
-          "__rl": true,
-          "mode": "list",
-          "value": "models/gemini-flash-latest",
-          "cachedResultName": "models/gemini-flash-latest"
-        },
-        "messages": {
-          "values": [
-            {
-              "content": "={{ $json.userMessage }}"
-            }
-          ]
-        },
-        "simplify": true,
-        "jsonOutput": false,
-        "options": {
-          "systemMessage": "Tu es le stratège de veille de Myrak. Contexte: automation + IA + agents pour freelances/PME. À partir de la liste d'items de la semaine, génère un récap Slack mrkdwn avec: titre Semaine N/YYYY, Top 5, Tendances (3 bullets), Idées pour Myrak (3 bullets). Liens au format <url|titre>. Français. Pas de JSON.",
-          "maxOutputTokens": 2048,
-          "temperature": 0.4
-        }
+        "jsCode": "const WINDOW_MS = 7 * 24 * 60 * 60 * 1000;\nconst now = Date.now();\n\nfunction parseDate(value) {\n  if (!value) return null;\n  const d = new Date(value);\n  return Number.isNaN(d.getTime()) ? null : d.getTime();\n}\n\nconst weekItems = [];\nfor (const item of items) {\n  const data = item.json;\n  const ms = parseDate(data.date || data.publishedAt || data.createdAt);\n  if (ms !== null && now - ms > WINDOW_MS) continue;\n  weekItems.push({\n    title: data.title || '',\n    url: data.url || '',\n    category: data.category || 'autre',\n    score: Number(data.score) || 0,\n    summary: data.summary || '',\n    source: data.source || '',\n    subreddit: data.subreddit || '',\n  });\n}\n\nweekItems.sort((a, b) => b.score - a.score);\n\nconst d = new Date();\nconst onejan = new Date(d.getFullYear(), 0, 1);\nconst weekNum = Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7);\nconst year = d.getFullYear();\n\nconst listText = weekItems.length\n  ? weekItems.map((it, i) => (\n      (i + 1) + '. [' + it.score + '/10] ' + it.title + ' | ' + it.category + ' | ' + it.source\n      + '\\n   URL: ' + it.url\n      + '\\n   Resume: ' + it.summary\n    )).join('\\n')\n  : 'Aucun item sur les 7 derniers jours.';\n\nconst SYSTEM_PROMPT = `Tu es le stratège de veille de Myrak.\\n\\nContexte Myrak :\\n- Automatisation de process métiers + IA / agents pour freelances et PME.\\n\\nGénère un récap Slack en français, format mrkdwn Slack (liens <url|titre>), STRICTEMENT structuré ainsi :\\n\\n🧭 Veille Myrak – Semaine ${weekNum} / ${year}\\n\\n🔥 Top 5 de la semaine\\n1. <url|Titre> – catégorie – Résumé (2 phrases).\\n...\\n\\n📈 Tendances repérées\\n- Observation 1 (2–3 phrases).\\n- Observation 2 (2–3 phrases).\\n- Observation 3 (2–3 phrases).\\n\\n💡 Idées pour Myrak\\n- Offre / package possible : ...\\n- Sujet de contenu / post : ...\\n- Autre idée actionnable : ...\\n\\nRègles :\\n- Pas d'introduction hors structure. Pas de JSON. Texte Slack prêt à poster.`;\n\nconst userMessage = 'Semaine ' + weekNum + '/' + year + ' — ' + weekItems.length + ' items:\\n\\n' + listText;\n\nreturn [{\n  json: {\n    weekNum,\n    year,\n    itemCount: weekItems.length,\n    items: weekItems,\n    openRouterBody: {\n      model: 'meta-llama/llama-3.3-70b-instruct:free',\n      temperature: 0.4,\n      messages: [\n        { role: 'system', content: SYSTEM_PROMPT },\n        { role: 'user', content: userMessage },\n      ],\n    },\n  },\n}];\n"
       }
     },
     {
@@ -174,7 +162,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const item = items[0].json;\nlet text = '';\nif (typeof item.text === 'string') text = item.text;\nelse if (typeof item.content === 'string') text = item.content;\nelse if (item.candidates && item.candidates[0]) {\n  const parts = item.candidates[0].content?.parts || [];\n  text = parts.map((p) => p.text || '').join('\\n');\n} else if (item.output) {\n  text = typeof item.output === 'string' ? item.output : JSON.stringify(item.output);\n} else {\n  text = String(item.slackMessage || item.message || '');\n}\ntext = String(text || '').trim();\nif (!text) {\n  text = '_Weekly Recap: aucun contenu genere._';\n}\nreturn [{ json: { slackMessage: text } }];"
+        "jsCode": "const raw = items[0].json;\nlet text = '';\nif (raw.choices && raw.choices[0]?.message?.content) {\n  text = String(raw.choices[0].message.content);\n} else if (typeof raw.text === 'string') {\n  text = raw.text;\n} else if (typeof raw.content === 'string') {\n  text = raw.content;\n} else {\n  text = String(raw.slackMessage || raw.message || '');\n}\ntext = String(text || '').trim();\nif (!text) {\n  text = '_Weekly Recap: aucun contenu genere._';\n}\nreturn [{ json: { slackMessage: text } }];\n"
       }
     },
     {
@@ -223,10 +211,57 @@
         -160
       ],
       "parameters": {
-        "content": "## Veille Myrak – Weekly Recap\n\n1. Tourne chaque lundi a 9h (cron 0 9 * * 1).\n2. Lit la Data Table **Veille Myrak** (id Xy0t5AMfnnBFbx9e).\n3. Filtre les 7 derniers jours, resume via Gemini, poste sur Slack #veille-myrak.\n4. Credentials: Google Gemini API + Slack account.",
+        "content": "## Veille Myrak – Weekly Recap (OpenRouter)\n\n1. Cron lundi 9h (`0 9 * * 1`).\n2. Lit Data Table **Veille Myrak**.\n3. Synthèse via OpenRouter (modèle `:free`).\n4. Credential : **OpenRouter API** (Bearer) + Slack account.",
         "width": 460,
         "height": 320
       }
+    },
+    {
+      "id": "5baa8bc8-435c-4a98-8fc7-a4689ea2660d",
+      "name": "Appeler OpenRouter Weekly",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "contentType": "json",
+        "genericAuthType": "httpBearerAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "HTTP-Referer",
+              "value": "https://myrak.fr"
+            },
+            {
+              "name": "X-Title",
+              "value": "Myrak Veille Weekly"
+            }
+          ]
+        },
+        "jsonBody": "={{ $json.openRouterBody }}",
+        "method": "POST",
+        "options": {
+          "timeout": 120000
+        },
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://openrouter.ai/api/v1/chat/completions"
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "executeOnce": true
     }
-  ]
+  ],
+  "nodeGroups": [],
+  "activeVersion": null,
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp"
+  }
 }

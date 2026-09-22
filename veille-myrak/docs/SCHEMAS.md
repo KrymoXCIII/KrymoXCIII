@@ -8,8 +8,9 @@ Schedule (0 8 * * *)
   → Recuperer les flux RSS (HTTP Request)
   → Parser et normaliser (Code)
   → Filtrer dedup et scorer (Code)
-  → Enrichir resume score categorie (Information Extractor)
-       ↳ Google Gemini Chat Model
+  → Preparer batch OpenRouter (Code)
+  → Appeler OpenRouter (HTTP Request, Bearer Auth)
+  → Parser reponse OpenRouter (Code)
   → Formater message Slack (Code)
        ├→ Poster Daily Digest Slack
        └→ Eclater lignes a logger → Logger Veille Myrak (Data Table)
@@ -21,7 +22,10 @@ Schedule (0 8 * * *)
 Schedule (0 9 * * 1)
   → Lire Veille Myrak (Data Table)
   → Filtrer 7j et preparer prompt (Code)
-  → Generer Weekly Recap Gemini (Google Gemini text)
+  → Appeler OpenRouter Weekly (HTTP Request, Bearer Auth)
   → Formater message Slack Weekly (Code)
   → Poster Weekly Recap Slack
 ```
+
+> L’enrichissement IA ne passe plus par Information Extractor / Google Gemini.
+> Voir [OPENROUTER.md](./OPENROUTER.md) pour prompts, modèles `:free` et credential Bearer.
